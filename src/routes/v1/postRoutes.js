@@ -11,6 +11,7 @@ const { posts: postSchema } = require("../../schemas");
 const { comments: commentSchema } = require("../../schemas");
 const { bookmarks: bookmarkSchema } = require("../../schemas");
 const { uploadPostImages: uploadPostImagesMiddleware } = require("../../config/fileUpload");
+const { fileUploadLimiter } = require("../../middlewares/rateLimiter");
 
 // Post routes
 router.post("/", authenticate, validate(postSchema.createPost), createPost);
@@ -26,7 +27,7 @@ router.delete("/:id", authenticate, validate(postSchema.deletePost), deletePost)
 
 router.post("/:postId/bookmark", authenticate, validate(bookmarkSchema.toggleBookmark), toggleBookmark);
 
-router.post("/:id/images", authenticate, validate(postSchema.uploadPostImages), uploadPostImagesMiddleware, uploadPostImages);
+router.post("/:id/images", authenticate, fileUploadLimiter, validate(postSchema.uploadPostImages), uploadPostImagesMiddleware, uploadPostImages);
 
 router.delete("/:id/images/:imageId", authenticate, validate(postSchema.deletePostImage), deletePostImage);
 // Comment routes

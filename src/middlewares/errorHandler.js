@@ -1,4 +1,5 @@
 const AppError = require("../utils/appErrors");
+const logger = require("../config/logger");
 
 // Handle casting errors (e.g., invalid ObjectId)
 const handleCastError = (err) => {
@@ -29,6 +30,15 @@ const handleTokenExpiredError = () => new AppError("Token has expired, please lo
 
 // Send error response for development mode
 const sendDevErr = (err, res) => {
+  logger.error("Error in development mode", {
+    statusCode: err.statusCode,
+    status: err.status,
+    message: err.message,
+    stack: err.stack,
+    path: res.req?.originalUrl,
+    method: res.req?.method,
+  });
+
   res.status(err.statusCode || 500).json({
     status: err.status || "error",
     message: err.message,
@@ -40,12 +50,26 @@ const sendDevErr = (err, res) => {
 // Send error response for production mode
 const sendProdErr = (err, res) => {
   if (err.isOperational) {
+    logger.warn("Operational error", {
+      statusCode: err.statusCode,
+      status: err.status,
+      message: err.message,
+      path: res.req?.originalUrl,
+      method: res.req?.method,
+    });
+
     res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
     });
   } else {
-    console.error("ERROR 💥", err);
+    logger.error("Programming or unknown error", {
+      message: err.message,
+      stack: err.stack,
+      path: res.req?.originalUrl,
+      method: res.req?.method,
+    });
+
     res.status(500).json({
       status: "error",
       message: "Something went very wrong!",

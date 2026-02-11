@@ -12,6 +12,7 @@ const { users: userSchema } = require("../../schemas");
 const { likes: likeSchema } = require("../../schemas");
 const { bookmarks: bookmarkSchema } = require("../../schemas");
 const { uploadProfilePicture } = require("../../config/fileUpload");
+const { fileUploadLimiter } = require("../../middlewares/rateLimiter");
 
 router.get("/", authenticate, allowTo("admin"), validate(userSchema.getAllUsers), getAllUsers);
 router.get("/me", authenticate, getMe);
@@ -20,7 +21,7 @@ router.patch("/me", authenticate, validate(userSchema.updateMe), updateMe);
 
 router.patch("/update-password", authenticate, validate(userSchema.updatePassword), updatePassword);
 router.get("/:id", authenticate, allowTo("admin"), validate(userSchema.getUserById), getUserById);
-router.patch("/profile-picture", authenticate, uploadProfilePicture, updateProfilePicture);
+router.patch("/profile-picture", authenticate, fileUploadLimiter, uploadProfilePicture, updateProfilePicture);
 
 router.delete("/profile-picture", authenticate, deleteProfilePicture);
 
