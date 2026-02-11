@@ -7,4 +7,5 @@ module.exports = {
   likes: require("./likes"),
   follows: require("./follows"),
   bookmarks: require("./bookmarks"),
+  notifications: require("./notifications"),
 };
