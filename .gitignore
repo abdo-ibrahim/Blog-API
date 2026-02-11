@@ -21,3 +21,5 @@ coverage/
 # IDE
 .vscode/
 .idea/
+
+INDEX_STRATEGY.md

@@ -92,6 +92,15 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ userName: 1 }, { unique: true });
+// Indexes for frequently searched/filtered fields
+userSchema.index({ firstName: 1, lastName: 1 });
+userSchema.index({ createdAt: -1 }); // For sorting latest users
+userSchema.index({ lastLogin: -1 }); // For finding recently active users
+userSchema.index({ isActive: 1 }); // For filtering active users
+userSchema.index({ role: 1 }); // For finding admin/user roles
+userSchema.index({ googleId: 1 }, { sparse: true }); // For social login
+userSchema.index({ facebookId: 1 }, { sparse: true }); // For social login
 
 userSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;

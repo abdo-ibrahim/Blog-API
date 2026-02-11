@@ -16,7 +16,16 @@ const followSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// ===== INDEXES =====
+// Unique compound index to prevent duplicate follows
 followSchema.index({ follower: 1, following: 1 }, { unique: true });
+
+// Single field indexes for queries
+followSchema.index({ follower: 1 }); // Find who a user is following
+followSchema.index({ following: 1 }); // Find followers of a user
+
+// Indexes for counts and sorting
+followSchema.index({ createdAt: -1 }); // For sorting recent follows
 
 followSchema.pre("save", function () {
   if (this.follower.toString() === this.following.toString()) {
