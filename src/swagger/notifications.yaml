@@ -1,0 +1,129 @@
+# =============================================
+#  NOTIFICATIONS  –  /api/v1/notifications
+# =============================================
+
+paths:
+  /api/v1/notifications:
+    post:
+      tags: [Notifications]
+      summary: Create a notification (system / internal)
+      description: Typically called internally. Creates a notification for a user.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipientId, type, message]
+              properties:
+                recipientId:
+                  type: string
+                  description: User ID of the recipient
+                type:
+                  type: string
+                  enum: [like, comment, follow, mention, system]
+                  example: comment
+                message:
+                  type: string
+                  maxLength: 500
+                  example: "John commented on your post"
+                relatedPost:
+                  type: string
+                  nullable: true
+                  description: Related post ID (optional)
+                relatedComment:
+                  type: string
+                  nullable: true
+                  description: Related comment ID (optional)
+      responses:
+        "201":
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Notification"
+        "400":
+          description: Validation error
+        "401":
+          description: Unauthorized
+
+    get:
+      tags: [Notifications]
+      summary: Get my notifications
+      description: Returns paginated notifications for the authenticated user, newest first.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+
+  /api/v1/notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: All notifications marked as read
+        "401":
+          description: Unauthorized
+
+  /api/v1/notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark a single notification as read
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Notification marked as read
+                  data:
+                    $ref: "#/components/schemas/Notification"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Notification not found

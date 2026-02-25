@@ -12,6 +12,7 @@ const logger = require("./config/logger");
 
 const hpp = require("hpp");
 const sessionMiddleware = require("./config/sessionRedis");
+const setupSwagger = require("./config/swagger");
 
 const app = express();
 
@@ -40,6 +41,9 @@ app.use(sessionMiddleware);
 
 // General rate limiter: 100 requests per 15 minutes for all routes
 app.use(generalLimiter);
+
+// Swagger API docs
+setupSwagger(app);
 
 // Routes
 app.use("/api/v1", v1Router);

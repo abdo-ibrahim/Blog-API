@@ -1,0 +1,467 @@
+# =============================================
+#  USERS  –  /api/v1/users
+# =============================================
+
+paths:
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Get all users (Admin)
+      description: Returns paginated list of users. Admin only.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/FieldsParam"
+        - $ref: "#/components/parameters/SearchParam"
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin only
+
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                userName:
+                  type: string
+                age:
+                  type: integer
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/update-password:
+    patch:
+      tags: [Users]
+      summary: Update password
+      description: Change the current user's password. Requires the current password.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword, confirmNewPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                confirmNewPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password updated successfully
+        "400":
+          description: Passwords don't match
+        "401":
+          description: Current password is incorrect
+
+  /api/v1/users/profile-picture:
+    patch:
+      tags: [Users]
+      summary: Upload / update profile picture
+      description: Upload a new profile picture (single file, max 2MB, jpg/png). Rate limited.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                profilePicture:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Profile picture updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                  profilePicture:
+                    type: object
+                    properties:
+                      fileId:
+                        type: string
+                      imagePath:
+                        type: string
+                        format: uri
+                      optimizedUrl:
+                        type: string
+                        format: uri
+        "401":
+          description: Unauthorized
+        "429":
+          description: Rate limit exceeded
+
+    delete:
+      tags: [Users]
+      summary: Delete profile picture
+      description: Reset profile picture to the default avatar.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Profile picture deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  profilePicture:
+                    type: string
+                    format: uri
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/bookmarks:
+    get:
+      tags: [Bookmarks]
+      summary: Get current user's bookmarks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Bookmarked posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Bookmark"
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: User data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin only
+        "404":
+          description: User not found
+
+    patch:
+      tags: [Users]
+      summary: Update user by ID (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                userName:
+                  type: string
+                age:
+                  type: integer
+                role:
+                  type: string
+                  enum: [admin, user]
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: User not found
+
+    delete:
+      tags: [Users]
+      summary: Delete user by ID (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: boolean
+                    example: true
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: User not found
+
+  /api/v1/users/{userId}/likes:
+    get:
+      tags: [Likes]
+      summary: Get all likes by a user
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: User ID
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: User's likes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Like"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/{userId}/follow:
+    post:
+      tags: [Follows]
+      summary: Toggle follow / unfollow a user
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: User ID to follow/unfollow
+      responses:
+        "200":
+          description: Follow toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Followed successfully
+                  data:
+                    type: object
+                    properties:
+                      following:
+                        type: boolean
+        "400":
+          description: Cannot follow yourself
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/{userId}/followers:
+    get:
+      tags: [Follows]
+      summary: Get followers of a user
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: User ID
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Followers list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Follow"
+        "401":
+          description: Unauthorized
+
+  /api/v1/users/{userId}/following:
+    get:
+      tags: [Follows]
+      summary: Get users being followed by a user
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: User ID
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Following list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Follow"
+        "401":
+          description: Unauthorized

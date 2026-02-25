@@ -1,0 +1,539 @@
+# =============================================
+#  POSTS  –  /api/v1/posts
+# =============================================
+
+paths:
+  /api/v1/posts:
+    post:
+      tags: [Posts]
+      summary: Create a new post
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title:
+                  type: string
+                  example: "My First Blog Post"
+                content:
+                  type: string
+                  example: "This is the content of the post..."
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["nodejs", "express"]
+      responses:
+        "201":
+          description: Post created (status=draft)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Post created successfully
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "400":
+          description: Validation error
+        "401":
+          description: Unauthorized
+
+    get:
+      tags: [Posts]
+      summary: Get all posts
+      description: |
+        Returns published posts visible to the user — plus the user's own drafts/scheduled posts.
+        Admins see all posts. Supports pagination, sorting, filtering, and full-text search.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/FieldsParam"
+        - $ref: "#/components/parameters/SearchParam"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, published, scheduled]
+          description: Filter by post status
+        - in: query
+          name: tags
+          schema:
+            type: string
+          description: Filter by tag
+      responses:
+        "200":
+          description: Posts list with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+
+  /api/v1/posts/my-posts:
+    get:
+      tags: [Posts]
+      summary: Get current user's posts
+      description: Returns all posts owned by the authenticated user (drafts, published, scheduled).
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/SearchParam"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, published, scheduled, all]
+          description: Filter by status (default all)
+      responses:
+        "200":
+          description: User's posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+
+  /api/v1/posts/popular:
+    get:
+      tags: [Posts]
+      summary: Get popular posts
+      description: Returns published posts sorted by views or likes.
+      parameters:
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [views, likes]
+            default: views
+          description: Sort by views or likes
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Popular posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+
+  /api/v1/posts/tags:
+    get:
+      tags: [Posts]
+      summary: Get all tags with post counts
+      description: Returns an aggregated list of tags from published posts with their counts, sorted by most used.
+      responses:
+        "200":
+          description: Tags list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Tag"
+
+  /api/v1/posts/{id}:
+    get:
+      tags: [Posts]
+      summary: Get post by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: Post details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Post not found
+
+    patch:
+      tags: [Posts]
+      summary: Update post by ID
+      description: Author or admin can update a post.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — not the post owner
+        "404":
+          description: Post not found
+
+    delete:
+      tags: [Posts]
+      summary: Delete post by ID
+      description: Author or admin can delete a post. Also removes associated images.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Post not found
+
+  /api/v1/posts/{id}/publish:
+    patch:
+      tags: [Posts]
+      summary: Publish a post
+      description: Sets post status to "published" with publishedAt = now.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: Post published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Post not found
+
+  /api/v1/posts/{id}/draft:
+    patch:
+      tags: [Posts]
+      summary: Unpublish / draft a post
+      description: Sets post status back to "draft".
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: Post drafted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Post not found
+
+  /api/v1/posts/{id}/schedule:
+    patch:
+      tags: [Posts]
+      summary: Schedule a post
+      description: Sets post status to "scheduled" with a future publishedAt date.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [publishedAt]
+              properties:
+                publishedAt:
+                  type: string
+                  format: date-time
+                  description: Must be a future date
+      responses:
+        "200":
+          description: Post scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "400":
+          description: Publish date must be in the future
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Post not found
+
+  /api/v1/posts/{id}/view:
+    post:
+      tags: [Posts]
+      summary: Increment post view count
+      description: Public endpoint. Increments the view counter by 1.
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      responses:
+        "200":
+          description: View count incremented
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "404":
+          description: Post not found
+
+  /api/v1/posts/{id}/images:
+    post:
+      tags: [Posts]
+      summary: Upload images to a post
+      description: Upload one or more images for a post (author or admin). Rate limited.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Image files (jpg, png, webp — max 5MB each)
+      responses:
+        "200":
+          description: Images uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "429":
+          description: Rate limit exceeded
+
+  /api/v1/posts/{id}/images/{imageId}:
+    delete:
+      tags: [Posts]
+      summary: Delete a post image
+      description: Remove a specific image from a post by its fileId.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MongoIdParam"
+        - in: path
+          name: imageId
+          required: true
+          schema:
+            type: string
+          description: ImageKit fileId of the image
+      responses:
+        "200":
+          description: Image deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/Post"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Image not found
+
+  /api/v1/posts/{postId}/bookmark:
+    post:
+      tags: [Bookmarks]
+      summary: Toggle bookmark on a post
+      description: Bookmark or un-bookmark a post.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: Post ID
+      responses:
+        "200":
+          description: Bookmark toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Bookmarked successfully
+                  data:
+                    type: object
+                    properties:
+                      bookmarked:
+                        type: boolean
+        "401":
+          description: Unauthorized
+
+  /api/v1/posts/{postId}/comments:
+    get:
+      tags: [Comments]
+      summary: Get comments for a post
+      description: Returns top-level comments for a specific post with pagination.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+          description: Post ID
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Comments list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized

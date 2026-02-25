@@ -1,0 +1,94 @@
+# =============================================
+#  DONATIONS  –  /api/v1/donation
+# =============================================
+
+paths:
+  /api/v1/donation:
+    post:
+      tags: [Donations]
+      summary: Create a donation (Stripe checkout)
+      description: |
+        Creates a Stripe checkout session for a one-time donation to a post author.
+        Returns the Stripe session URL for client-side redirect.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, postId]
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                  description: Donation amount in USD cents
+                  example: 500
+                postId:
+                  type: string
+                  description: Post to donate towards
+                message:
+                  type: string
+                  maxLength: 500
+                  description: Optional message to the author
+                  example: "Love your content, keep it up!"
+      responses:
+        "200":
+          description: Stripe checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      sessionUrl:
+                        type: string
+                        format: uri
+                        description: Stripe checkout URL
+                      sessionId:
+                        type: string
+        "400":
+          description: Validation error
+        "401":
+          description: Unauthorized
+
+  /api/v1/donation/webhook:
+    post:
+      tags: [Donations]
+      summary: Stripe webhook handler
+      description: |
+        Handles Stripe webhook events (`checkout.session.completed`).
+        Must receive the raw body with Stripe signature header.
+        **Do not call manually** — this is invoked by Stripe.
+      parameters:
+        - in: header
+          name: stripe-signature
+          required: true
+          schema:
+            type: string
+          description: Stripe webhook signature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe event payload
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        "400":
+          description: Invalid signature or payload

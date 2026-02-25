@@ -1,0 +1,345 @@
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token obtained from /api/v1/auth/signin"
+
+  schemas:
+    # ──────────────── Error ────────────────
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: fail
+        message:
+          type: string
+
+    # ──────────────── Pagination ────────────────
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+        hasPrevPage:
+          type: boolean
+
+    # ──────────────── User ────────────────
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+        userName:
+          type: string
+          example: johndoe
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        age:
+          type: integer
+          example: 25
+        role:
+          type: string
+          enum: [admin, user]
+          example: user
+        isVerified:
+          type: boolean
+        isActive:
+          type: boolean
+        profilePicture:
+          type: object
+          properties:
+            fileId:
+              type: string
+              nullable: true
+            imagePath:
+              type: string
+              format: uri
+        provider:
+          type: string
+          enum: [local, google, facebook]
+        lastLogin:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Post ────────────────
+    Post:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+          example: "My First Blog Post"
+        content:
+          type: string
+          example: "This is the content of the post..."
+        userId:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/UserSummary"
+        author:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["nodejs", "express"]
+        status:
+          type: string
+          enum: [draft, published, scheduled]
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              fileId:
+                type: string
+              imagePath:
+                type: string
+                format: uri
+        likes:
+          type: integer
+        views:
+          type: integer
+        commentsCount:
+          type: integer
+        isOwner:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        userName:
+          type: string
+        profilePicture:
+          type: object
+          properties:
+            fileId:
+              type: string
+              nullable: true
+            imagePath:
+              type: string
+              format: uri
+
+    # ──────────────── Comment ────────────────
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+        content:
+          type: string
+        postId:
+          type: string
+        userId:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/UserSummary"
+        parentCommentId:
+          type: string
+          nullable: true
+        likes:
+          type: integer
+        isEdited:
+          type: boolean
+        editedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isOwner:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Like ────────────────
+    Like:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        targetId:
+          type: string
+        targetType:
+          type: string
+          enum: [post, comment]
+
+    # ──────────────── Follow ────────────────
+    Follow:
+      type: object
+      properties:
+        _id:
+          type: string
+        follower:
+          type: string
+        following:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Bookmark ────────────────
+    Bookmark:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        postId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Notification ────────────────
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        recipient:
+          type: string
+        sender:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/UserSummary"
+        type:
+          type: string
+          enum: [like, comment, follow, reply]
+        relatedPostId:
+          type: string
+          nullable: true
+        relatedCommentId:
+          type: string
+          nullable: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Donation ────────────────
+    Donation:
+      type: object
+      properties:
+        _id:
+          type: string
+        sessionId:
+          type: string
+        amount:
+          type: number
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, PAID, FAILED, REFUNDED]
+        sessionURL:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    # ──────────────── Tag ────────────────
+    Tag:
+      type: object
+      properties:
+        tag:
+          type: string
+          example: "nodejs"
+        count:
+          type: integer
+          example: 15
+
+  parameters:
+    PageParam:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+    LimitParam:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      description: Items per page
+    SortParam:
+      in: query
+      name: sort
+      schema:
+        type: string
+      description: "Sort fields (e.g. -createdAt,title)"
+    FieldsParam:
+      in: query
+      name: fields
+      schema:
+        type: string
+      description: "Comma-separated fields to include"
+    SearchParam:
+      in: query
+      name: search
+      schema:
+        type: string
+      description: "Full-text search query"
+    MongoIdParam:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{24}$"
+      description: MongoDB ObjectId
