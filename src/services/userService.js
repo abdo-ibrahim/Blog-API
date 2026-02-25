@@ -2,7 +2,31 @@ const User = require("../models/userModel");
 const APIFeatures = require("../utils/APIFeatures");
 const ImageService = require("../services/imageKitService");
 const AppError = require("../utils/appErrors");
+const { redisClient } = require("../utils/redisClient");
+const logger = require("../config/logger");
+
+// Cache TTL
+const USER_CACHE_TTL = 600; // 10 minutes
+
+const userCacheKey = (id) => `user:profile:${id}`;
+
 class UserService {
+  /**
+   * Invalidate cached profile for a specific user (or all users).
+   */
+  static async invalidateUserCache(userId) {
+    try {
+      if (userId) {
+        await redisClient.del(userCacheKey(userId));
+        logger.debug("Redis: invalidated user cache", { userId });
+      } else {
+        await redisClient.deleteByPattern("user:*");
+        logger.debug("Redis: invalidated all user caches");
+      }
+    } catch (err) {
+      logger.warn("Redis user cache invalidation error", { error: err.message });
+    }
+  }
   // GET all users
   static async getAllUsers(queryParams = {}) {
     const features = new APIFeatures(User.find().select("-password -__v"), queryParams).filter().search(["firstName", "lastName", "userName", "email"]).sort().limitFields().paginate();
@@ -31,10 +55,31 @@ class UserService {
 
   // GET user by ID
   static async getUserById(id) {
+    // ── Try cache first ──
+    const cacheKey = userCacheKey(id);
+    try {
+      const cached = await redisClient.getJSON(cacheKey);
+      if (cached) {
+        logger.debug("Redis cache HIT", { key: cacheKey });
+        return cached;
+      }
+    } catch (err) {
+      logger.warn("Redis cache read error (getUserById)", { error: err.message });
+    }
+
     const user = await User.findById(id, { password: 0 });
     if (!user) {
       throw new AppError("User not found", 404);
     }
+
+    // ── Store in cache ──
+    try {
+      await redisClient.setJSON(cacheKey, user.toObject(), USER_CACHE_TTL);
+      logger.debug("Redis cache SET", { key: cacheKey, ttl: USER_CACHE_TTL });
+    } catch (err) {
+      logger.warn("Redis cache write error (getUserById)", { error: err.message });
+    }
+
     return user;
   }
 
@@ -50,6 +95,7 @@ class UserService {
     const userObj = updatedUser.toObject();
     delete userObj.password;
     delete userObj.confirmPassword;
+    await UserService.invalidateUserCache(id);
     return userObj;
   }
 
@@ -64,6 +110,7 @@ class UserService {
       await ImageService.deleteSingle(user.profilePicture.fileId);
     }
     await user.remove();
+    await UserService.invalidateUserCache(id);
     return true;
   }
 
@@ -88,6 +135,7 @@ class UserService {
     const userObj = user.toObject();
     delete userObj.password;
     delete userObj.confirmPassword;
+    await UserService.invalidateUserCache(id);
     return userObj;
   }
   // delete profile picture
@@ -107,6 +155,7 @@ class UserService {
     const userObj = user.toObject();
     delete userObj.password;
     delete userObj.confirmPassword;
+    await UserService.invalidateUserCache(id);
     return userObj;
   }
   // getProfilePictureUrl
@@ -138,6 +187,7 @@ class UserService {
     const userObj = updatedUser.toObject();
     delete userObj.password;
     delete userObj.confirmPassword;
+    await UserService.invalidateUserCache(userId);
     return userObj;
   }
 

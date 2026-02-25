@@ -204,3 +204,32 @@ exports.deletePostImage = async (req, res, next) => {
     data: updatedPost,
   });
 };
+
+/**
+ * @desc    Get popular posts (sorted by views or likes)
+ * @route   GET /posts/popular
+ * @method  GET
+ * @access  Public
+ */
+exports.getPopularPosts = async (req, res, next) => {
+  const result = await PostService.getPopularPosts(req.query);
+  res.status(200).json({
+    message: "Popular posts fetched successfully",
+    data: result.posts,
+    pagination: result.pagination,
+  });
+};
+
+/**
+ * @desc    Get all tags with post counts
+ * @route   GET /posts/tags
+ * @method  GET
+ * @access  Public
+ */
+exports.getTagsWithCounts = async (req, res, next) => {
+  const tags = await PostService.getTagsWithCounts();
+  res.status(200).json({
+    message: "Tags fetched successfully",
+    data: tags,
+  });
+};

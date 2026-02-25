@@ -11,6 +11,7 @@ const v2Router = require("./routes/v2");
 const logger = require("./config/logger");
 
 const hpp = require("hpp");
+const sessionMiddleware = require("./config/sessionRedis");
 
 const app = express();
 
@@ -33,6 +34,9 @@ app.use(helmet());
 app.use(sanitizeMongoInput);
 app.use(xss());
 app.use(hpp());
+
+// Redis session storage
+app.use(sessionMiddleware);
 
 // General rate limiter: 100 requests per 15 minutes for all routes
 app.use(generalLimiter);

@@ -1,6 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const { createPost, getAllPosts, getPostById, updatePost, deletePost, getMyPosts, schedulePost, draftPost, publishPost, deletePostImage, uploadPostImages, incrementViewCount } = require("../../controllers/postController");
+const {
+  createPost,
+  getAllPosts,
+  getPostById,
+  updatePost,
+  deletePost,
+  getMyPosts,
+  schedulePost,
+  draftPost,
+  publishPost,
+  deletePostImage,
+  uploadPostImages,
+  incrementViewCount,
+  getPopularPosts,
+  getTagsWithCounts,
+} = require("../../controllers/postController");
 
 const { toggleBookmark } = require("../../controllers/bookmarkController");
 
@@ -17,6 +32,8 @@ const { fileUploadLimiter } = require("../../middlewares/rateLimiter");
 router.post("/", authenticate, validate(postSchema.createPost), createPost);
 router.get("/", authenticate, validate(postSchema.getAllPost), getAllPosts);
 router.get("/my-posts", authenticate, validate(postSchema.getMyPosts), getMyPosts);
+router.get("/popular", getPopularPosts);
+router.get("/tags", getTagsWithCounts);
 router.get("/:id", authenticate, validate(postSchema.getPostById), getPostById);
 router.post("/:id/view", validate(postSchema.incrementViewCount), incrementViewCount);
 router.patch("/:id/schedule", authenticate, validate(postSchema.schedulePost), schedulePost);
